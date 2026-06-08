@@ -1,4 +1,3 @@
-:
 
 📘 Appliance Energy Prediction Using Deep Learning (LSTM)
 📌 Project Overview
@@ -8,6 +7,7 @@ This project focuses on predicting appliance energy consumption using a multivar
 The main objective is to build a Machine Learning and Deep Learning (LSTM) model to accurately forecast energy usage and analyze consumption patterns.
 
 🎯 Objectives
+
 Perform data preprocessing and cleaning
 Conduct exploratory data analysis (EDA)
 Engineer meaningful time-series features
@@ -16,6 +16,7 @@ Develop a deep learning LSTM model
 Apply hyperparameter tuning for optimization
 Evaluate performance using regression metrics
 Optimize model for better accuracy
+
 📂 Project Structure
 Appliance-Energy-Prediction/
 │
@@ -79,6 +80,7 @@ Step 4: Evaluate Model
 python src/evaluate.py
 Step 5: Run Full Pipeline
 python main.py
+
 🧠 Model Architecture (LSTM)
 LSTM Layer (64 units)
 Dropout (0.2)
