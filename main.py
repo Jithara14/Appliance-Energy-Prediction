@@ -1,85 +1,133 @@
-import numpy as np
-import pandas as pd
-
 from src.preprocessing import preprocess_data
-from src.feature_engineering import split_data, scale_data
-from src.model import build_lstm
-from src.train import create_sequences, train_model, predict
-from src.evaluate import evaluate_model
-from src.utils import plot_predictions, plot_training
+from src.eda import EDA
+from src.feature_engineering import FeatureEngineering
+from src.feature_selection import FeatureSelection
+from src.sequence_generator import SequenceGenerator
+from src.baseline_models import BaselineModels
+from src.models import LSTMModel
+from src.evaluation import ModelEvaluation
+from src.plots import PlotGenerator
+
+
+def run_pipeline():
+
+    print("\n==============================")
+    print("APPLIANCE ENERGY PIPELINE STARTED")
+    print("==============================")
+
+    # ===================================
+    # 1. PREPROCESSING
+    # ===================================
+
+    print("\nSTEP 1: Preprocessing")
+
+    preprocess_data(
+        input_path="data/raw/energy_data_set.csv",
+        output_path="data/processed/energy_data_processed.csv"
+    )
+
+    # ===================================
+    # 2. EDA (OPTIONAL - COMMENT IF NOT NEEDED)
+    # ===================================
+
+    print("\nSTEP 2: EDA")
+
+    eda = EDA("data/processed/energy_data_processed.csv")
+    eda.run_eda()
+
+    # ===================================
+    # 3. FEATURE ENGINEERING
+    # ===================================
+
+    print("\nSTEP 3: Feature Engineering")
+
+    fe = FeatureEngineering(
+        input_path="data/processed/energy_data_processed.csv",
+        output_path="data/processed/feature_engineered_data.csv"
+    )
+    fe.run()
+
+    # ===================================
+    # 4. FEATURE SELECTION
+    # ===================================
+
+    print("\nSTEP 4: Feature Selection")
+
+    fs = FeatureSelection(
+        input_path="data/processed/feature_engineered_data.csv",
+        output_path="data/processed/selected_features_data.csv"
+    )
+    fs.run()
+
+    # ===================================
+    # 5. SEQUENCE GENERATION
+    # ===================================
+
+    print("\nSTEP 5: Sequence Generation")
+
+    sg = SequenceGenerator(
+        input_path="data/processed/selected_features_data.csv",
+        output_dir="data/processed/sequences",
+        time_steps=24
+    )
+    sg.run()
+
+    # ===================================
+    # 6. BASELINE MODELS
+    # ===================================
+
+    print("\nSTEP 6: Baseline Models")
+
+    bm = BaselineModels(
+        input_path="data/processed/selected_features_data.csv"
+    )
+    bm.run()
+
+    # ===================================
+    # 7. LSTM MODEL TRAINING
+    # ===================================
+
+    print("\nSTEP 7: LSTM Training")
+
+    lstm = LSTMModel(
+        data_path="data/processed/sequences",
+        model_path="outputs/models/lstm_model.h5"
+    )
+    lstm.run()
+
+    # ===================================
+    # 8. MODEL EVALUATION
+    # ===================================
+
+    print("\nSTEP 8: Evaluation")
+
+    evaluator = ModelEvaluation(
+        model_path="outputs/models/lstm_model.h5",
+        data_path="data/processed/sequences"
+    )
+    evaluator.run()
+
+    # ===================================
+    # 9. PLOTS
+    # ===================================
+
+    print("\nSTEP 9: Plots")
+
+    plotter = PlotGenerator(
+        model_path="outputs/models/lstm_model.h5",
+        data_path="data/processed/sequences"
+    )
+    plotter.run()
+
+    print("\n==============================")
+    print("PIPELINE COMPLETED SUCCESSFULLY")
+    print("==============================")
 
 
 # =========================
-# STEP 1: Preprocessing
+# RUN PROJECT
 # =========================
-df = preprocess_data(
-    "data/raw/energy_data_set.csv",
-    "data/processed/processed_energy_data.csv"
-)
 
-# =========================
-# STEP 2: Load processed
-# =========================
-df = pd.read_csv("data/processed/processed_energy_data.csv")
-df['date'] = pd.to_datetime(df['date'])
+if __name__ == "__main__":
 
-# =========================
-# STEP 3: Split
-# =========================
-train_df, test_df = split_data(df)
-
-X_train = train_df.drop(['Appliances', 'date'], axis=1)
-y_train = train_df['Appliances']
-
-X_test = test_df.drop(['Appliances', 'date'], axis=1)
-y_test = test_df['Appliances']
-
-# =========================
-# STEP 4: Scaling
-# =========================
-train_df_scaled, test_df_scaled, scaler = scale_data(train_df, test_df)
-
-X_train = train_df_scaled.drop(['Appliances', 'date'], axis=1)
-X_test = test_df_scaled.drop(['Appliances', 'date'], axis=1)
-
-y_train = train_df_scaled['Appliances']
-y_test = test_df_scaled['Appliances']
-
-# =========================
-# STEP 5: Reshape for LSTM
-# =========================
-X_train = create_sequences(X_train)
-X_test = create_sequences(X_test)
-
-# =========================
-# STEP 6: Model
-# =========================
-model = build_lstm((X_train.shape[1], X_train.shape[2]))
-
-# =========================
-# STEP 7: Train
-# =========================
-history = train_model(model, X_train, y_train)
-
-# =========================
-# STEP 8: Predict
-# =========================
-predictions = predict(model, X_test)
-
-# =========================
-# STEP 9: Evaluate
-# =========================
-evaluate_model(y_test, predictions)
-
-# =========================
-# STEP 10: Plot
-# =========================
-plot_predictions(y_test, predictions)
-plot_training(history)
-
-# =========================
-# STEP 11: Save Model
-# =========================
-model.save("models/trained_model.h5")
-
-print("\nMODEL SAVED SUCCESSFULLY ✔")
+    run_pipeline()

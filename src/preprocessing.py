@@ -1,144 +1,151 @@
 import pandas as pd
 import numpy as np
+import os
+from sklearn.preprocessing import MinMaxScaler
 
 
 def preprocess_data(input_path, output_path):
 
-    print("Loading Dataset...")
+    print("\n==============================")
+    print("1. LOADING DATASET")
+    print("==============================")
 
     df = pd.read_csv(input_path)
-
     print("Original Shape:", df.shape)
 
     # ===================================
-    # Date Conversion
+    # 2. DATE CONVERSION
     # ===================================
+
+    print("\n2. Converting Date Column...")
 
     df['date'] = pd.to_datetime(df['date'])
+    df = df.sort_values('date').reset_index(drop=True)
 
     # ===================================
-    # Missing Values
+    # 3. MISSING VALUE REPORT
     # ===================================
 
-    print("\nMissing Values Before Cleaning:")
-    print(df.isnull().sum())
+    print("\n3. Missing Value Report:")
 
-    df.interpolate(inplace=True)
+    missing = df.isnull().sum()
 
-    print("\nMissing Values After Cleaning:")
-    print(df.isnull().sum())
+    missing_df = pd.DataFrame({
+        "Column": missing.index,
+        "Missing_Count": missing.values
+    })
 
-    # ===================================
-    # Time Features
-    # ===================================
+    os.makedirs("outputs/metrics", exist_ok=True)
 
-    df['hour'] = df['date'].dt.hour
+    missing_df.to_csv("outputs/metrics/missing_values.csv", index=False)
 
-    df['day'] = df['date'].dt.day
-
-    df['month'] = df['date'].dt.month
-
-    df['weekday'] = df['date'].dt.weekday
-
-    df['is_weekend'] = (
-        df['weekday'] >= 5
-    ).astype(int)
+    print(missing_df)
 
     # ===================================
-    # Rolling Features
+    # 4. MISSING VALUE HANDLING
     # ===================================
 
-    df['rolling_1h'] = (
-        df['Appliances']
-        .rolling(window=6)
-        .mean()
-    )
+    print("\n4. Handling Missing Values...")
 
-    df['rolling_3h'] = (
-        df['Appliances']
-        .rolling(window=18)
-        .mean()
-    )
+    df.interpolate(method='linear', inplace=True)
+    df.fillna(method='bfill', inplace=True)
+    df.fillna(method='ffill', inplace=True)
 
     # ===================================
-    # Lag Features
+    # 5. OUTLIER REPORT
     # ===================================
 
-    df['lag_1'] = df['Appliances'].shift(1)
+    print("\n5. Outlier Report (IQR Method)")
 
-    df['lag_3'] = df['Appliances'].shift(3)
+    numeric_cols = df.select_dtypes(include=np.number).columns
 
-    df['lag_6'] = df['Appliances'].shift(6)
-
-    # ===================================
-    # Interaction Features
-    # ===================================
-
-    if 'T1' in df.columns and 'RH_1' in df.columns:
-
-        df['temp_humidity'] = (
-            df['T1'] * df['RH_1']
-        )
-
-    # ===================================
-    # Remove NaNs from lag/rolling
-    # ===================================
-
-    df.dropna(inplace=True)
-
-    # ===================================
-    # Outlier Treatment (IQR)
-    # ===================================
-
-    numeric_cols = df.select_dtypes(
-        include=np.number
-    ).columns
+    outlier_summary = []
 
     for col in numeric_cols:
 
-        q1 = df[col].quantile(0.25)
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
 
-        q3 = df[col].quantile(0.75)
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
 
-        iqr = q3 - q1
+        count = ((df[col] < lower) | (df[col] > upper)).sum()
 
-        lower = q1 - (1.5 * iqr)
+        outlier_summary.append([col, count])
 
-        upper = q3 + (1.5 * iqr)
+    outlier_df = pd.DataFrame(outlier_summary, columns=["Feature", "Outlier_Count"])
 
-        df[col] = np.where(
-            df[col] > upper,
-            upper,
-            df[col]
-        )
+    outlier_df.to_csv("outputs/metrics/outlier_report.csv", index=False)
 
-        df[col] = np.where(
-            df[col] < lower,
-            lower,
-            df[col]
-        )
-
-    print("\nFinal Shape:", df.shape)
+    print(outlier_df)
 
     # ===================================
-    # Save Processed Dataset
+    # 6. OUTLIER TREATMENT (IQR CAPPING)
     # ===================================
 
-    df.to_csv(
-        output_path,
-        index=False
-    )
+    print("\n6. Treating Outliers...")
 
-    print(
-        f"\nProcessed dataset saved to:\n{output_path}"
-    )
+    for col in numeric_cols:
 
-    return df
+        Q1 = df[col].quantile(0.25)
+        Q3 = df[col].quantile(0.75)
+        IQR = Q3 - Q1
+
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+
+        df[col] = np.clip(df[col], lower, upper)
+
+    # ===================================
+    # 7. DUPLICATE REMOVAL
+    # ===================================
+
+    print("\n7. Removing Duplicates...")
+
+    before = len(df)
+    df.drop_duplicates(inplace=True)
+    after = len(df)
+
+    print(f"Duplicates Removed: {before - after}")
+
+    # ===================================
+    # 8. FEATURE SCALING SUPPORT
+    # ===================================
+
+    print("\n8. Scaling Features...")
+
+    scaler = MinMaxScaler()
+
+    target_column = "Appliances"
+
+    X = df.drop(columns=["date", target_column])
+    y = df[target_column]
+
+    X_scaled = scaler.fit_transform(X)
+
+    # ===================================
+    # 9. SAVE PROCESSED DATASET
+    # ===================================
+
+    print("\n9. Saving Processed Dataset...")
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    processed_df = pd.DataFrame(X_scaled, columns=X.columns)
+    processed_df[target_column] = y.values
+
+    processed_df.to_csv(output_path, index=False)
+
+    print(f"\nSaved to: {output_path}")
+    print("Final Shape:", processed_df.shape)
+
+    return processed_df
 
 
 if __name__ == "__main__":
 
     preprocess_data(
         input_path="data/raw/energy_data_set.csv",
-        output_path="data/processed/processed_energy_data.csv"
+        output_path="data/processed/energy_data_processed.csv"
     )
