@@ -1,198 +1,178 @@
-
-📘 Appliance Energy Prediction Using Deep Learning (LSTM)
+Appliance Energy Prediction Using Machine Learning & LSTM
 📌 Project Overview
 
-This project focuses on predicting appliance energy consumption using a multivariate time-series dataset collected from a residential building. The dataset includes environmental conditions, indoor/outdoor sensor readings, and time-based features recorded at 10-minute intervals.
+This project focuses on predicting appliance energy consumption using environmental and sensor-based time-series data. It implements a complete end-to-end machine learning pipeline including:
 
-The main objective is to build a Machine Learning and Deep Learning (LSTM) model to accurately forecast energy usage and analyze consumption patterns.
+Data preprocessing
+Exploratory Data Analysis (EDA)
+Feature engineering
+Baseline machine learning models
+Deep learning model (LSTM)
+Model evaluation and comparison
 
-🎯 Objectives
+The goal is to build an intelligent forecasting system that helps in energy optimization and smart building management.
 
-Perform data preprocessing and cleaning
-Conduct exploratory data analysis (EDA)
-Engineer meaningful time-series features
-Build baseline machine learning models
-Develop a deep learning LSTM model
-Apply hyperparameter tuning for optimization
-Evaluate performance using regression metrics
-Optimize model for better accuracy
+📊 Dataset Description
 
-📂 Project Structure
-Appliance-Energy-Prediction/
+The dataset contains 10-minute interval sensor readings from a residential building, including:
+
+Temperature readings (T1–T9, T_out)
+Humidity readings (RH_1–RH_9, RH_out)
+Weather features (Windspeed, Visibility, Pressure, Dewpoint)
+Target variable: Appliances energy consumption
+
+🏗️ Project Structure
+
+Appliance_Energy_Prediction/
 │
 ├── data/
 │   ├── raw/
-│   │   └── energy_data_set.csv
 │   └── processed/
-│       └── processed_energy_data.csv
-│
-├── notebooks/
-│   └── EDA.ipynb
-│
-├── src/
-│   ├── data_preprocessing.py
-│   ├── feature_engineering.py
-│   ├── baseline_models.py
-│   ├── model.py
-│   ├── train.py
-│   ├── evaluate.py
-│   ├── hyperparameter_tuning.py   # NEW (optional file)
-│   └── utils.py
-│
-├── models/
-│   └── trained_model.keras
 │
 ├── outputs/
 │   ├── plots/
-│   └── metrics/
+│   ├── metrics/
+│   ├── models/
+│   └── reports/
 │
-├── reports/
-│   └── report.pdf
+├── src/
+│   ├── preprocessing.py
+│   ├── eda.py
+│   ├── feature_engineering.py
+│   ├── feature_selection.py
+│   ├── baseline_models.py
+│   ├── sequence_generator.py
+│   ├── models.py
+│   ├── hyperparameter_tuning.py
+│   ├── evaluation.py
+│   ├── plots.py
+│   ├── timeseries_validation.py
+│   └── utils.py
 │
-├── requirements.txt
 ├── main.py
+├── requirements.txt
 └── README.md
-⚙️ Installation & Setup
-1️⃣ Clone the repository
-git clone https://github.com/YourUsername/Appliance-Energy-Prediction.git
-cd Appliance-Energy-Prediction
-2️⃣ Create virtual environment
 
-Windows
+⚙️ Workflow Pipeline
+1️⃣ Data Preprocessing
+Load raw dataset
+Handle missing values
+Remove duplicates
+Detect and treat outliers (IQR method)
+Feature scaling using MinMaxScaler
+Save cleaned dataset
+2️⃣ Exploratory Data Analysis (EDA)
+Data distribution analysis
+Correlation heatmaps
+Missing value visualization
+Statistical summary of features
+Trend analysis of energy consumption
+3️⃣ Feature Engineering
+Time-based features (hour, day, month, weekday)
+Lag features (previous time steps)
+Rolling statistics (moving averages)
+Interaction features (temperature × humidity)
+Feature selection and refinement
+4️⃣ Baseline Models
 
+Implemented models:
+
+Linear Regression
+Ridge Regression
+Random Forest Regressor
+
+Evaluation Metrics:
+
+MAE
+RMSE
+R² Score
+5️⃣ Deep Learning Model (LSTM)
+Sequential LSTM architecture
+Dropout regularization
+Dense output layer
+Optimized using Adam optimizer
+Loss function: Mean Squared Error (MSE)
+6️⃣ Hyperparameter Tuning
+
+Tuned parameters:
+
+LSTM units
+Batch size
+Learning rate
+Dropout rate
+Number of epochs
+7️⃣ Model Evaluation
+
+Models evaluated using:
+
+Mean Absolute Error (MAE)
+Root Mean Squared Error (RMSE)
+R² Score
+
+📈 Results Summary
+🔹 Baseline Models
+Model	MAE	RMSE	R² Score
+Linear Regression	13.93	21.67	0.744
+Ridge Regression	13.92	21.67	0.744
+Random Forest	14.05	22.29	0.729
+🔹 LSTM Model
+Model	MAE	RMSE	R² Score
+LSTM	13.38	21.27	0.702
+
+
+📌 Key Insights
+Energy consumption is strongly influenced by environmental conditions.
+Feature engineering significantly improves model performance.
+Baseline models performed competitively due to strong linear patterns.
+LSTM captures sequential patterns but requires tuning for better performance.
+
+
+⚠️ Challenges Faced
+Missing date column issues in feature engineering
+Keras model loading compatibility errors
+Sequence generation for LSTM input
+Handling NaN values from lag/rolling features
+Model performance variation between baseline and LSTM
+
+
+🚀 Future Improvements
+Implement GRU and Attention-based models
+Use advanced hyperparameter tuning (Bayesian optimization)
+Deploy model using FastAPI + React
+Add real-time energy forecasting dashboard
+Multi-step forecasting for future prediction
+
+
+🛠️ Installation & Setup
+1. Clone repository
+git clone https://github.com/your-username/Appliance_Energy_Prediction.git
+cd Appliance_Energy_Prediction
+
+
+2. Create virtual environment
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate   # Windows
 
-Mac/Linux
 
-python -m venv venv
-source venv/bin/activate
-3️⃣ Install dependencies
+3. Install dependencies
 pip install -r requirements.txt
-▶️ How to Run the Project
-Step 1: Preprocessing
-python src/data_preprocessing.py
-Step 2: Feature Engineering
-python src/feature_engineering.py
-Step 3: Train Model
-python src/train.py
-Step 4: Evaluate Model
-python src/evaluate.py
-Step 5: Run Full Pipeline
+
+▶️ Run Project
 python main.py
 
-🧠 Model Architecture (LSTM)
-LSTM Layer (64 units)
-Dropout (0.2)
-LSTM Layer (32 units)
-Dense Layer (32 units, ReLU)
-Output Layer (1 unit)
-Optimizer: Adam
-Loss Function: Mean Squared Error (MSE)
-🚀 Hyperparameter Tuning
-📌 Overview
 
-Hyperparameter tuning is performed to improve the performance of the LSTM model by optimizing key training and architecture parameters. Since deep learning models are sensitive to configuration, tuning helps achieve better generalization and reduce overfitting.
+📦 Requirements
+Python 3.9+
+NumPy
+Pandas
+Scikit-learn
+TensorFlow / Keras
+Matplotlib
+Seaborn
 
-🔧 Hyperparameters Tuned
 
-The following hyperparameters were analyzed and optimized:
-
-1. Learning Rate
-
-Controls the speed of model learning.
-
-Tested values:
-0.001 (default)
-0.0005
-0.0001
-
-✔ Final choice: 0.001
-
-2. Batch Size
-
-Number of samples processed before updating weights.
-
-Tested values:
-16
-32
-64
-
-✔ Final choice: 32
-
-3. LSTM Units
-
-Defines model capacity.
-
-Tested:
-64
-128
-256
-
-✔ Final choice: 128 → 64 (2-layer LSTM)
-
-4. Dropout Rate
-
-Used to prevent overfitting.
-
-Tested:
-0.1
-0.2
-0.3
-
-✔ Final choice: 0.2
-
-5. Number of Layers
-1 layer → underfitting
-2 layers → best performance
-3 layers → overfitting
-
-✔ Final choice: 2 LSTM layers
-
-6. Epochs
-Range tested: 20–50
-Early stopping applied to avoid overtraining
-
-✔ Final behavior: Early stopping at optimal epoch
-
-⚙️ Optimization Techniques Used
-✔ Early Stopping
-
-Stops training when validation loss stops improving:
-
-patience = 5
-restore_best_weights = True
-✔ Validation Split
-20% of training data used for validation
-Helps monitor generalization performance
-✔ Model Selection Strategy
-Manual tuning approach
-Compared multiple configurations
-Selected model based on lowest validation loss + best RMSE
-📊 Final Tuned Configuration
-Hyperparameter	Value
-Learning Rate	0.001
-Batch Size	32
-LSTM Layers	2
-Units	128 + 64
-Dropout	0.2
-Optimizer	Adam
-Loss Function	MSE
-📈 Impact of Hyperparameter Tuning
-
-After tuning:
-
-Reduced overfitting
-Improved validation stability
-Increased R² score
-Lowered RMSE and MAE
-Better generalization on unseen data
-🚀 Future Improvements
-Use Keras Tuner / Optuna for automated search
-Try Transformer-based models
-Bayesian Optimization for faster tuning
-Grid Search for structured comparison
 👨‍💻 Author
-Name: Jithara Siriwardana
-Project: Appliance Energy Prediction
-Domain: Deep Learning / Time-Series Forecasting
+
+Jithara Siriwardana
+Machine Learning & AI Enthusiast
+Focused on Deep Learning, Time-Series Forecasting, and Full-Stack AI Systems
