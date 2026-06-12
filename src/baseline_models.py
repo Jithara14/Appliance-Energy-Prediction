@@ -1,167 +1,180 @@
 import pandas as pd
-import numpy as np
+import joblib
 import os
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import (
+    RandomForestRegressor,
+    GradientBoostingRegressor,
+    ExtraTreesRegressor
+)
 
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import joblib
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score
+)
 
 
 class BaselineModels:
 
-    def __init__(self, input_path):
+    def __init__(self, data_path):
 
-        self.input_path = input_path
+        self.data_path = data_path
 
-        os.makedirs("outputs/models", exist_ok=True)
-        os.makedirs("outputs/metrics", exist_ok=True)
+        os.makedirs(
+            "outputs/models",
+            exist_ok=True
+        )
 
-    # =========================
-    # LOAD DATA
-    # =========================
+        os.makedirs(
+            "outputs/metrics",
+            exist_ok=True
+        )
 
     def load_data(self):
 
-        print("\nLoading dataset for baseline models...")
+        df = pd.read_csv(self.data_path)
 
-        df = pd.read_csv(self.input_path)
-
-        print("Shape:", df.shape)
-
-        return df
-
-    # =========================
-    # SPLIT DATA
-    # =========================
-
-    def split_data(self, df):
-
-        print("\nSplitting data...")
-
-        target = "Appliances"
-
-        X = df.drop(columns=[target])
-        y = df[target]
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+        X = df.drop(
+            columns=["Appliances"]
         )
 
-        return X_train, X_test, y_train, y_test
+        y = df["Appliances"]
 
-    # =========================
-    # TRAIN MODEL
-    # =========================
+        return X, y
 
-    def train_models(self, X_train, y_train):
+    def train_models(self):
 
-        print("\nTraining baseline models...")
+        X, y = self.load_data()
+
+        tscv = TimeSeriesSplit(
+            n_splits=5
+        )
 
         models = {
-            "LinearRegression": LinearRegression(),
-            "Ridge": Ridge(alpha=1.0),
-            "RandomForest": RandomForestRegressor(
-                n_estimators=100,
-                random_state=42
-            )
+
+            "LinearRegression":
+                LinearRegression(),
+
+            "Ridge":
+                Ridge(alpha=1.0),
+
+            "DecisionTree":
+                DecisionTreeRegressor(
+                    max_depth=10,
+                    random_state=42
+                ),
+
+            "RandomForest":
+                RandomForestRegressor(
+                    n_estimators=100,
+                    random_state=42
+                ),
+
+            "GradientBoosting":
+                GradientBoostingRegressor(
+                    n_estimators=100,
+                    random_state=42
+                ),
+
+            "ExtraTrees":
+                ExtraTreesRegressor(
+                    n_estimators=100,
+                    random_state=42
+                )
         }
-
-        trained_models = {}
-
-        for name, model in models.items():
-
-            model.fit(X_train, y_train)
-
-            trained_models[name] = model
-
-            print(f"{name} trained.")
-
-        return trained_models
-
-    # =========================
-    # EVALUATE MODELS
-    # =========================
-
-    def evaluate(self, models, X_test, y_test):
-
-        print("\nEvaluating models...")
 
         results = []
 
+        best_model = None
+        best_score = -999
+
         for name, model in models.items():
 
-            y_pred = model.predict(X_test)
+            print(f"\nTraining {name}...")
 
-            mae = mean_absolute_error(y_test, y_pred)
-            rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-            r2 = r2_score(y_test, y_pred)
+            for train_idx, test_idx in tscv.split(X):
 
-            results.append([name, mae, rmse, r2])
+                X_train = X.iloc[train_idx]
+                X_test = X.iloc[test_idx]
+
+                y_train = y.iloc[train_idx]
+                y_test = y.iloc[test_idx]
+
+            model.fit(
+                X_train,
+                y_train
+            )
+
+            y_pred = model.predict(
+                X_test
+            )
+
+            mae = mean_absolute_error(
+                y_test,
+                y_pred
+            )
+
+            rmse = mean_squared_error(
+                y_test,
+                y_pred
+            ) ** 0.5
+
+            r2 = r2_score(
+                y_test,
+                y_pred
+            )
+
+            results.append([
+                name,
+                mae,
+                rmse,
+                r2
+            ])
+
+            if r2 > best_score:
+
+                best_score = r2
+                best_model = model
 
         results_df = pd.DataFrame(
             results,
-            columns=["Model", "MAE", "RMSE", "R2"]
+            columns=[
+                "Model",
+                "MAE",
+                "RMSE",
+                "R2"
+            ]
         )
-
-        results_df.to_csv("outputs/metrics/baseline_results.csv", index=False)
 
         print(results_df)
 
-        return results_df
+        results_df.to_csv(
+            "outputs/metrics/baseline_results.csv",
+            index=False
+        )
 
-    # =========================
-    # SAVE BEST MODEL
-    # =========================
+        joblib.dump(
+            best_model,
+            "outputs/models/best_baseline.pkl"
+        )
 
-    def save_best_model(self, models, X_test, y_test):
-
-        print("\nSaving best model...")
-
-        best_model = None
-        best_score = -np.inf
-
-        for name, model in models.items():
-
-            score = model.score(X_test, y_test)
-
-            if score > best_score:
-                best_score = score
-                best_model = model
-
-        joblib.dump(best_model, "outputs/models/best_model.pkl")
-
-        print(f"Best model saved with R2: {best_score:.4f}")
-
-    # =========================
-    # FULL PIPELINE
-    # =========================
+        print(
+            f"\nBest baseline model saved. R2={best_score:.4f}"
+        )
 
     def run(self):
 
-        df = self.load_data()
+        self.train_models()
 
-        X_train, X_test, y_train, y_test = self.split_data(df)
-
-        models = self.train_models(X_train, y_train)
-
-        self.evaluate(models, X_test, y_test)
-
-        self.save_best_model(models, X_test, y_test)
-
-        print("\nBaseline Modeling Completed!")
-
-
-# =========================
-# RUN FILE
-# =========================
 
 if __name__ == "__main__":
 
-    bm = BaselineModels(
-        input_path="data/processed/selected_features_data.csv"
+    model = BaselineModels(
+        "data/processed/energy_data_processed.csv"
     )
 
-    bm.run()
+    model.run()
